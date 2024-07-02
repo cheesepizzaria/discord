@@ -1,0 +1,117 @@
+import pandas as pd
+import plotly.graph_objects as go
+file_path = "dummy.xlsx"
+df = pd.read_excel(file_path)
+parsed_data = []
+main_cause = None
+category = None
+sub_category = None
+for index, row in df.iterrows():
+    if pd.notna(row['Main Cause']):
+        main_cause = row['Main Cause']
+    
+    if pd.notna(row['Category']):
+        category = row['Category']
+    
+    if pd.notna(row['Sub-Category']):
+        sub_category = row['Sub-Category']
+    
+    if pd.notna(row['Specific Cause']):
+        specific_cause = row['Specific Cause']
+        parsed_data.append([main_cause, category, sub_category, specific_cause])
+parsed_df = pd.DataFrame(parsed_data, columns=['Main Cause', 'Category', 'Sub-Category', 'Specific Cause'])
+def draw_stacked_fishbone_diagrams(data):
+    main_causes = data['Main Cause'].unique()    
+    fig = go.Figure()    
+    y_base = 0    
+    for i, main_cause in enumerate(main_causes):
+        cause_data = data[data['Main Cause'] == main_cause]        
+        fig.add_trace(go.Scatter(
+            x=[0, 0.9],
+            y=[y_base + 0.5, y_base + 0.5],
+            mode="lines",
+            line=dict(width=2, color="black"),
+            showlegend=False
+        ))        
+        fig.add_trace(go.Scatter(
+            x=[1],
+            y=[y_base + 0.5],
+            text=[main_cause],
+            mode="text",
+            textposition="middle right",
+            showlegend=False
+        ))        
+        y_pos_upper = y_base + 0.75
+        y_pos_lower = y_base + 0.25
+        x_pos = 0.1        
+        categories = cause_data['Category'].unique()        
+        for j, category in enumerate(categories):
+            category_data = cause_data[cause_data['Category'] == category]
+            sub_categories = category_data['Sub-Category'].unique()            
+            if j % 2 == 0:
+                y_pos = y_pos_upper
+                y_pos_upper += 0.25
+            else:
+                y_pos = y_pos_lower
+                y_pos_lower -= 0.25            
+            fig.add_trace(go.Scatter(
+                x=[x_pos, x_pos + 0.2],
+                y=[y_base + 0.5, y_pos],
+                mode="lines",
+                line=dict(width=1.5, color="black"),
+                showlegend=False
+            ))            
+            fig.add_trace(go.Scatter(
+                x=[x_pos + 0.25],
+                y=[y_pos],
+                text=[category],
+                mode="text",
+                textposition="middle left",
+                showlegend=False
+            ))            
+            for sub_category in sub_categories:
+                sub_category_data = category_data[category_data['Sub-Category'] == sub_category]                
+                fig.add_trace(go.Scatter(
+                    x=[x_pos + 0.2, x_pos + 0.4],
+                    y=[y_pos, y_pos],
+                    mode="lines",
+                    line=dict(width=1, color="black"),
+                    showlegend=False
+                ))                
+                fig.add_trace(go.Scatter(
+                    x=[x_pos + 0.45],
+                    y=[y_pos],
+                    text=[sub_category],
+                    mode="text",
+                    textposition="middle left",
+                    showlegend=False
+                ))                
+                for k, row in sub_category_data.iterrows():
+                    y_pos -= 0.05 if j % 2 == 0 else -0.05
+                    fig.add_trace(go.Scatter(
+                        x=[x_pos + 0.4, x_pos + 0.6],
+                        y=[y_pos, y_pos],
+                        mode="lines",
+                        line=dict(width=1, color="black"),
+                        showlegend=False
+                    ))                    
+                    fig.add_trace(go.Scatter(
+                        x=[x_pos + 0.65],
+                        y=[y_pos],
+                        text=[row['Specific Cause']],
+                        mode="text",
+                        textposition="middle left",
+                        showlegend=False
+                    ))
+            x_pos += 0.15        
+        y_base -= 1.5     
+    fig.update_layout(
+        title="Stacked Fishbone Diagrams",
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        showlegend=False,
+        height=200 * len(main_causes),
+        width=1000
+    )    
+    fig.show()
+draw_stacked_fishbone_diagrams(parsed_df)
